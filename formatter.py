@@ -1,47 +1,49 @@
-CRAFT_ORANGE = '\033[38;5;166m' # Благородный медный (самый спокойный)
-MEDIUM_GREEN = '\033[38;5;34m'  # Идеальный баланс (рекомендую)
-END = '\033[0m' # Сброс цвета к стандартному
+import sys
+CRAFT_ORANGE = '\033[38;5;166m'
+MEDIUM_GREEN = '\033[38;5;34m'
+END = '\033[0m'
 
 def print_welcome_message():
+    """
+    Print the welcome message.
+    """
     welcome_message = f"""
-{CRAFT_ORANGE}========================================================================
+{CRAFT_ORANGE}{'=' * 65}
                     WELCOME TO MOVIE SEARCH
->>>>>>>{END} This is an interactive console application for quick {CRAFT_ORANGE}<<<<<<<<
+>>>>>>{END} This is an interactive console application for quick {CRAFT_ORANGE}<<<<<<
             >>>>>>>{END} and convenient movie search {CRAFT_ORANGE}<<<<<<<<
-========================================================================{END}
-
-{MEDIUM_GREEN}Here you can:{END}
-  * Search for a movie using a keyword in the title.
-  * Choose a movie based on your favorite genre and release year.
-  * Choose a movie based solely on genre.
-  * Choose a movie based solely on release year.
-  * See which movies are searched for most often.
+{'=' * 65}{END}
 """
     print(welcome_message)
+    sys.stdout.flush()
 
 def print_help_intro():
-    help_intro = f"""{MEDIUM_GREEN}You can use helpful menu commands:{END}
- - 'end' — exit the app (always available).
- - 'back' — Cancel the current entry and return to the main menu (always available).
- - 'help' — Command Reference (always available).
+    """
+    Print the help introduction.
+    """
+    help_intro = f"""{MEDIUM_GREEN}   You can use helpful menu commands (always available)  {END}
+ - 'end' — exit the app.
+ - 'back' — Cancel the current entry and return to the main menu.
+ - 'help' — Command Reference.
 """
     print(help_intro)
+    sys.stdout.flush()
 
 def print_main_menu():
     """
     Print the main menu.
     """
-menu_text = f"""{MEDIUM_GREEN}===========================
-    >>> MAIN MENU <<< 
-==========================={END}
-1. Search by keyword
-2. Search by genre and year
-3. Search by genre only
-4. Search by year only
-5. Show the top 5 popular searches
+    menu_text = f"""{MEDIUM_GREEN}{'=' * 65}
+                    >>>>>>> MAIN MENU <<<<<<<<<
+{MEDIUM_GREEN}{'=' * 65}{END}
+1. Search for a movie using a keyword in the title
+2. Choose a movie based on your favorite genre and release year.
+3. Choose a movie based solely on genre.
+4. Choose a movie based solely on release year.
+5. See which movies are searched for most often.
 0. Exit
 """
-print(menu_text)
+    print(menu_text)
 
 # создать функции для меню и вывода таблиц.
 def print_movies(movies_list):
@@ -54,7 +56,7 @@ def print_movies(movies_list):
 
     # заголовок таблицы
     print(f"\n{MEDIUM_GREEN}{'-' * 85}")
-    print(f"{'ID': < 6} | {'Title':<40} | {'Year': <6} | {'Length (min)': <15} | {'Rating'}")
+    print(f"{'ID': <6} | {'Title':<40} | {'Year': <6} | {'Length (min)': <15} | {'Rating'}")
     print(f"{'-' * 85}{END}")
 
     # вывод строк
@@ -66,7 +68,7 @@ def print_movies(movies_list):
         year = movie.get('release_year', 'N/A')
         length = movie.get('length', 'N/A')
         rating = movie.get('rating', 'N/A')
-        print(f"{film_id:<6} | {title:<40} | {year:<6} | {length:<6} | {rating}")
+        print(f"{film_id:<6} | {title:<40} | {year:<6} | {length:<15} | {rating}")
     print(f"{MEDIUM_GREEN}{'-' * 85}{END}\n")
 
 def print_genres(genres_list):
@@ -77,7 +79,9 @@ def print_genres(genres_list):
         print(f"{CRAFT_ORANGE}Genres not found.{END}")
         return
 
-    print(f"\n{CRAFT_ORANGE}--- Available Genres ---{END}")
+    print(f"\n{CRAFT_ORANGE}{'=' * 45}{END}"
+    f"\n{CRAFT_ORANGE}   >>>>>>>>> Available Genres <<<<<<<<<{END}"
+    f"\n{CRAFT_ORANGE}{'='*45}{END}")
 
     # Выводим по 2 жанра в строку
     for i in range(0, len(genres_list), 2):
