@@ -34,21 +34,54 @@ def get_number_input(data, min_value, max_value):
         if user_text in ("back_called","help_called"):
             return user_text
 
-# проверка цифры ли это
+        # check if the input is a number
         if not user_text.isdigit():
             print("Oops! Please enter a valid number.")
             continue
 
-# превращаем текст в число, если пользователь нечаянно введет цифры в кавычках
+        # convert the input to an integer
         value = int(user_text)
 
-# проверяем попадает ли число в нужный диапазон
+        # check if the number is within the specified range
         if value < min_value or value > max_value:
             print(f"Oops! The number must be between {min_value} and {max_value}. Try again.")
             continue
         return value
 
-# основная функция
+def handle_search_session(search_function_name, search_params, log_type, log_data):
+    """
+    Manages a search session with pagination.
+    - Executes the search.
+    - Logs the first successful request.
+    - Handles paginated output.
+    """
+    offset = 0
+    while True:
+        with MySQLConnection() as db:
+            search_method = getattr(db, search_function_name)
+            movies = search_method(**search_params, offset=offset)
+            if offset == 0 and movies:
+                with MongoConnection() as mongo_db:
+                    mongo_db.write_log_inform(log_type, log_data, len(movies))
+
+            print_movies(movies)
+
+            if not movies:
+                if offset == 0:
+                    print("Sorry, no movies found for this search. Try a different search!")
+                else:
+                    print("Sorry,no more movies found.")
+                break
+            while True:
+                user_action = safe_input("Please, press Enter to show the next 10, or 'back' to return to the menu: ")
+                if user_action == "back_called":
+                    return
+                elif user_action == "":
+                    offset += 10
+                    break
+                else:
+                    print("Oops! Invalid input. Please press Enter or type 'back'.")
+
 def movie_search_galaxy():
     """
     General function app MovieSearchGalaxy
@@ -64,65 +97,120 @@ def movie_search_galaxy():
     print_welcome_message()
     print_help_intro()
 
+    # General menu
     while True:
         print_main_menu()
-        choice = safe_input("Select an action: ")
+        choice = safe_input("Please, select an action: ")
 
         if choice in ("help_called", "back_called"):
             continue
 
-# search by keyword
-    if choice == '1':
-        while True:
-            keyword = safe_input("Enter a keyword to search for movies: ")
-            if keyword == "back_called":
-                break
-            if not keyword:
-                print("You didn't enter a keyword. Please try again.")
-                continue
-
-            offset = 0
+    # search by keyword
+        if choice == '1':
             while True:
-                with MySQLConnection() as db, MongoConnection() as mongo_db:
-                    movies = db.search_by_keyword(keyword, offset)
-                    if offset == 0 and movies:
-                        mongo_db.write_log_inform("keyword", {"keyword": keyword}, len(movies))
-                print_movies(movies)
-
-                if not movies:
-                    if offset == 0:
-                        pass
-                    else:
-                        print("No more movies found.")
+                keyword = safe_input("Please, enter a keyword to search for movies: ")
+                if keyword == "back_called":
                     break
-    # пагинация результатов поиска  Limit ofset?  Fetch?
-                user_action = safe_input("Press Enter to show the next 10, or 'back' to return to the menu: ")
-                if user_action == "back_called":
+                if not keyword:
+                    print("You didn't enter a keyword. Please try again.")
+                    continue
+
+                handle_search_session(
+                    search_function_name="search_by_keyword",
+                    search_params={"keyword": keyword},
+                    log_type="keyword",
+                    log_data={"keyword": keyword}
+                )
+                break
+
+        # search by genre and year
+        elif choice == '2':
+            with MySQLConnection() as db:
+               all_genres = db.get_all_genres()
+               years = db.get_min_max_year()
+               min_year, max_year = years['min_year'], years['max_year']
+
+            while True:
+                print_genres(all_genres)
+                genre_id = get_number_input(f"Select a genre ID (or 'back': ", 1, len(all_genres))
+                if genre_id == "back_called":
                     break
-                offset += 10
-            break
 
-    # search by genre and year
-    elif choice == '2':
-        with MySQLConnection() as db:
-           all_genres =
+                year_min_input = get_number_input(f"Enter the start year ({min_year} - {max_year}): ", min_year, max_year)
+                if year_min_input == "back_called":
+                    break
 
+                year_max_input = get_number_input(f"Enter the end year({year_min_input} - {max_year}): ", year_min_input, max_year)
+                if year_max_input == "back_called":
+                    break
 
-    # search by genre
-            elif choice == '3':
-                pass
-    # search by year
-            elif choice == '4':
-                pass
-    # show the top 5 popular searches
-            elif choice == '5':
-                pass
-    # exit
-            elif choice == '0':
-                print("\nThanks for stopping by MovieSearch! I hope your evening is filled with amazing scenes. See you soon! ✨🍿")
-                sys.exit(0)
-            else:
-                print("\nOops! Looks like that’s the wrong button... 🍿 Please pick an option from the menu (a number from 0 to 5).")
+                genre_name = next((g['name'] for g in all_genres if g['category_id'] == genre_id), "")
+
+                handle_search_session(
+                    search_function_name = 'search_by_genre_and_year',
+                    search_params = {'genre_id': genre_id, 'min_year': year_min_input, 'max_year': year_max_input},
+                    log_type = 'genre_year',
+                    log_data = {'genre': genre_name, 'from_year': year_min_input, 'to_year': year_max_input}
+                )
+                break
+
+        # search by genre
+        elif choice == '3':
+            with MySQLConnection() as db:
+                all_genres = db.get_all_genres()
+
+            while True:
+                print_genres(all_genres)
+                genre_id = get_number_input(f"Select a genre ID (or 'back'): ", 1, len(all_genres))
+                if genre_id == "back_called": break
+
+                genre_name = next((g['name'] for g in all_genres if g['category_id'] == genre_id), "")
+
+                handle_search_session(
+                    search_function_name='search_by_genre',
+                    search_params={'genre_id': genre_id},
+                    log_type='genre',
+                    log_data={'genre': genre_name}
+                )
+                break
+        # search by year
+        elif choice == '4':
+            with MySQLConnection() as db:
+                years = db.get_min_max_year()
+                min_year, max_year = years['min_year'], years['max_year']
+
+            while True:
+                year = get_number_input(f"Enter a year between {min_year} and {max_year} (or 'back'): ", min_year,
+                                        max_year)
+                if year == "back_called": break
+
+                handle_search_session(
+                    search_function_name='search_by_year',
+                    search_params={'year': year},
+                    log_type='year',
+                    log_data={'year': year}
+                )
+                break
+
+        # show the top 5 popular searches
+        elif choice == '5':
+            try:
+                with MongoStats() as stats:
+                    popular_searches = stats.get_popular_search_types()
+                    total_searches = stats.get_total_searches()
+                print_stats(popular_searches, total_searches)
+            except Exception as e:
+                print(f"Could not retrieve stats. Error: {e}")
+
+            safe_input("Press Enter to return to the main menu.")
+            continue
+
+        # exit
+        elif choice == '0':
+            print("\nThanks for stopping by MovieSearch! I hope your evening is filled with amazing scenes. See you soon! ✨🍿")
+            sys.exit(0)
+        else:
+            print("\nOops! Looks like that’s the wrong button... Please pick an option from the menu (a number from 0 to 5).")
 
 # запуск
 if __name__ == '__main__':
