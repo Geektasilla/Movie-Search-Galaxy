@@ -7,10 +7,12 @@ __pycache__/
 CACHEDIR.TAG
 
 # --- Environments (Виртуальное окружение — НЕ пушить!) ---
+.venv
 .venv/
 venv/
 ENV/
 env/
+.env
 pyvenv.cfg
 pip-log.txt
 pip-delete-this-directory.txt
