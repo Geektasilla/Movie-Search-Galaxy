@@ -2,13 +2,15 @@ from datetime import datetime
 import pymongo
 from settings import MONGO_CONFIG, MONGO_AUTH_DB, MONGO_COLLECTION_NAME
 
+
 class MongoConnection:
     """
     A class for connecting to MongoDB and logging.
     """
     def __init__(self):
-        """ Class initialization. """
-        # Соохраняю настройки подключения во внутрь обьекта
+        """
+        Initialize connection settings from the config file.
+        """
         self.config_url = MONGO_CONFIG
         self.db_name = MONGO_AUTH_DB
         self.collection_name = MONGO_COLLECTION_NAME
@@ -17,64 +19,83 @@ class MongoConnection:
         self.collection = None
 
     def __enter__(self):
-        """ Enter in context: connect to MongoDB and create a collection.
-        :return:
+        """
+        Enter in context: connect to MongoDB and create a collection.
         """
         try:
-            # connectin with MongoDB
             self.client = pymongo.MongoClient(self.config_url)
-            # choosing a database
+
+            self.client.admin.command('ping')
+
             database = self.client[self.db_name]
-            # choosing a collection
             self.collection = database[self.collection_name]
-            # returning the object to colling methods
+
             return self
 
-        except pymongo.errors.ConnectionError as e:
-            print(f"Ошибка подключения к MongoDB: {e}:")
+        except Exception as e:
+            print(f"Connection error to MongoDB: {e}:")
             raise
 
     def __exit__(self, except_type, except_val, except_tb):
         """
-        Exit from context: clous a network connection.
-        :return:
+        Exit from context: closes the network connection.
         """
         if self.client:
             self.client.close()
 
-# сохранить информацию о детали поискового запросв в словарь
-    def write_log_inform(self, search_type, params, results_count):
+    def write_log_inform(self, search_type, params, session_id):
         """
-        Saves the search query details to a MongoDB collection.
-        :param search_type: Search type (e.g., ‘keyword’ or ‘genre_and_year’)
-        :param params: Dictionary of search parameters (e.g., {‘keyword’: ‘Matrix’} or {‘genre’: 1, ‘year’: 2005})
-        :param results_count: Number of movies found
-        """
+        Saves or updates search query details in the database.
 
-        log_inform_searching = {
-            "timestamp": datetime.now(),
+        Args:
+            search_type (str): The type of search (e.g., "keyword").
+            params (dict): The parameters used for the search.
+            session_id (str): The unique identifier for the current session.
+        """
+        if self.collection is None:
+            return
+        
+        # Define the query to find an existing log entry based on search type
+        # and parameters.
+        filter_query = {
             "search_type": search_type,
             "params": params,
-            "results_count": results_count
+            "session_id": session_id
         }
+        now = datetime.now()
+
         try:
-            self.collection.insert_one(log_inform_searching)
-        except Exception:
-            print("\n[⚠️] Unable to save your search history. However, your search results are still available!")
+            existing_log = self.collection.find_one(filter_query)
+            if existing_log:
+                # If the query is found, update the search count and timestamp.
+                # The existing document's fields will be updated.
+                self.collection.update_one(
+                    {"_id": existing_log["_id"]},
+                    {
+                        "$inc": {"search_count": 1},
+                        "$set": {"timestamp": now}
+                    }
+                )
+            else:
+                # If the query is new, insert a new log entry.
+                new_log = {
+                    "timestamp": now,
+                    "search_type": search_type,
+                    "params": params,
+                    "search_count": 1,
+                    "session_id": session_id  # Add the session ID to the log
+                }
+                self.collection.insert_one(new_log)
 
+        except Exception as e:
+            print(f"\n[⚠️] MongoDB Error: {e}")
 
-
-
-
-
-#
-# # connections checking
+# Connection check block
 # if __name__ == "__main__":
-#     print(f"С")
+#     print("Checking MongoDB connection...")
 #     try:
 #         with MongoConnection() as db:
-#             print(f"connections checking MongoDB: {db.db_name}")
-#             print(f"choosed the collection:{db.collection_name}")
+#             print(f"Connected to database: {db.db_name}")
+#             print(f"Using collection: {db.collection_name}")
 #     except Exception as e:
-#         print(f"not_successfully{e}")
-
+#         print(f"Connection failed: {e}")

@@ -1,5 +1,11 @@
-dnspython==2.8.0
-mysql-connector-python==9.6.0
+# Драйвер для работы с MongoDB
 pymongo==4.16.0
+
+# Поддержка DNS для MongoDB (необходима для облачных подключений)
+dnspython==2.8.0
+
+# Основной драйвер для MySQL (вместо mysql-connector-python)
 PyMySQL==1.1.2
+
+# Инструмент для работы с переменными окружения (пароли и конфиги)
 python-dotenv==1.2.2
