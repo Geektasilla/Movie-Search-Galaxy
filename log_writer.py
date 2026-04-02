@@ -43,14 +43,14 @@ class MongoConnection:
         if self.client:
             self.client.close()
 
-    def write_log_inform(self, search_type, params, session_id):
+    def write_log_inform(self, search_type, params, client_id):
         """
         Saves or updates search query details in the database.
 
         Args:
             search_type (str): The type of search (e.g., "keyword").
             params (dict): The parameters used for the search.
-            session_id (str): The unique identifier for the current session.
+            client_id (str): The unique identifier for the client.
         """
         if self.collection is None:
             return
@@ -60,7 +60,7 @@ class MongoConnection:
         filter_query = {
             "search_type": search_type,
             "params": params,
-            "session_id": session_id
+            "client_id": client_id
         }
         now = datetime.now()
 
@@ -83,19 +83,11 @@ class MongoConnection:
                     "search_type": search_type,
                     "params": params,
                     "search_count": 1,
-                    "session_id": session_id  # Add the session ID to the log
+                    "client_id": client_id  # Add the client ID to the log
                 }
                 self.collection.insert_one(new_log)
 
         except Exception as e:
             print(f"\n[⚠️] MongoDB Error: {e}")
 
-# Connection check block
-# if __name__ == "__main__":
-#     print("Checking MongoDB connection...")
-#     try:
-#         with MongoConnection() as db:
-#             print(f"Connected to database: {db.db_name}")
-#             print(f"Using collection: {db.collection_name}")
-#     except Exception as e:
-#         print(f"Connection failed: {e}")
+

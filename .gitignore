@@ -39,5 +39,7 @@ Thumbs.db
 *.sql
 *.sqlite
 APPLICATION_LOGIK.md
-user_id.txt
+client_id.txt
 Questions.txt
+presentation\
+presentation

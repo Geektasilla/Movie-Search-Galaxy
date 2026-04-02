@@ -69,16 +69,15 @@ class MongoStats(MongoConnection):
         """
         try:
             pipeline = [
-                # Stage 1: Group by search_type, params, and session_id.
+                # Stage 1: Group by search_type, params, and client_id.
                 # This step is crucial for identifying unique search actions
-                # performed by individual sessions. We also capture the latest
-                # timestamp for each unique session's search.
+                # performed by individual clients.
                 {
                     "$group": {
                         "_id": {
                             "search_type": "$search_type",
                             "params": "$params",
-                            "session_id": "$session_id"  # Now using session_id
+                            "client_id": "$client_id"  # Now using session_id
                         },
                         "max_time": {"$max": "$timestamp"}
                     }
